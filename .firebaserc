@@ -1,0 +1,11 @@
+{
+  "targets": {
+    "fractal-forest": {
+      "hosting": {
+        "Fractal": [
+          "fractal-forest"
+        ]
+      }
+    }
+  }
+}

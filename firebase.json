@@ -1,0 +1,19 @@
+{
+  "hosting": [
+    {
+      "target": "Fractal",
+      "public": "dist/Fractal",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
+}
