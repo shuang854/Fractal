@@ -1,6 +1,5 @@
 import { Component, Input, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
 import { fromEvent } from 'rxjs';
-import { pairwise } from 'rxjs/operators'
 import { ForestComponent } from './forest.component';
 
 @Component({
@@ -17,14 +16,18 @@ export class CanvasComponent implements AfterViewInit {
     @Input() public height = window.innerHeight-10;
 
     private cx: CanvasRenderingContext2D;
-    private treeH: number;
-    private treeW: number;
+    private treeH: number; // starting height of tree
+    private treeW: number; // starting width of tree
+    private rotation: number; // angle between a branch and its trunk
+    private isBuilding: boolean; // check if a tree is being built
 
     public ngAfterViewInit() {
         const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
         this.cx = canvasEl.getContext('2d');
         this.treeH = 200;
         this.treeW = 20;
+        this.rotation = 30;
+        this.isBuilding = false;        
 
         canvasEl.width = this.width;
         canvasEl.height = this.height;
@@ -36,8 +39,9 @@ export class CanvasComponent implements AfterViewInit {
         this.captureEvents(canvasEl, this.forest);
     }
 
+    // listening for user inputs (Observables)
     private captureEvents(canvasEl: HTMLCanvasElement, forest: ForestComponent) {
-        // this draw on 'forest-canvas' on every click
+        // draws on 'forest-canvas' on every click
         fromEvent(canvasEl, 'click')
             .pipe()
             .subscribe((res: MouseEvent) => {
@@ -47,42 +51,54 @@ export class CanvasComponent implements AfterViewInit {
                     y: res.clientY - rect.top
                 };
                 var start = { x: currentPos.x, y: this.height - this.treeH - 50};
-                forest.fillForest(start, { x: start.x, y: this.height - 50 }, this.treeH, this.treeW, 0, 20);
+
+                // build only one tree at a time
+                if (!this.isBuilding) {
+                    forest.grayTrees();
+                    this.isBuilding = true;
+                    forest.fillForest(start, { x: start.x, y: this.height - 50 }, this.treeH, 
+                        this.treeW, 0, this.rotation);
+                    setTimeout(() => { 
+                        this.isBuilding = false; 
+                    }, forest.resetAnim() );
+                }
             });
 
+        // follow mouse movement to keep a tree on cursor's x position
         fromEvent(canvasEl, 'mousemove')
-            .pipe(pairwise())
-            .subscribe((res: [MouseEvent, MouseEvent]) => {
-                const rect = canvasEl.getBoundingClientRect();
+            .pipe()
+            .subscribe((res: MouseEvent) => {
+                // ignore mouse movement while tree is being built
+                if (!this.isBuilding) {
+                    const rect = canvasEl.getBoundingClientRect();
 
-                // previous and current position with the offset
-                const prevPos = {
-                    x: res[0].clientX - rect.left,
-                    y: res[0].clientY - rect.top
-                };
+                    // current position with the offset
+                    const currentPos = {
+                        x: res.clientX - rect.left,
+                        y: res.clientY - rect.top
+                    };
 
-                const currentPos = {
-                    x: res[1].clientX - rect.left,
-                    y: res[1].clientY - rect.top
-                };
-
-                // this method allows tree to hover over cursor
-                 this.updateCanvas(currentPos, this.treeH, this.treeW);
+                    // this method allows tree to hover over cursor
+                    this.updateCanvas(currentPos, this.treeH, this.treeW);
+                }
             });
 
+        // increase/decrease tree height with mouse wheel
         fromEvent(canvasEl, 'wheel')
             .subscribe((res: WheelEvent) => {
-                if (res.deltaY > 0 && this.treeH >= 100) { this.treeH -= 10; }
-                else if (res.deltaY < 0 && this.treeH <= 300) { this.treeH += 10; }
-                
                 const rect = canvasEl.getBoundingClientRect();
                 const currentPos = {
                     x: res.clientX - rect.left,
                     y: res.clientY - rect.top
                 }
 
-                this.updateCanvas(currentPos, this.treeH, this.treeW);
+                if (!this.isBuilding) {
+                    if (res.deltaY > 0 && this.treeH >= 100) { this.treeH -= 10; }
+                    else if (res.deltaY < 0 && this.treeH <= 300) { this.treeH += 10; }
+                    this.updateCanvas(currentPos, this.treeH, this.treeW);
+                }
             });
+            
     }
 
     private updateCanvas(currentPos: { x: number, y: number }, h: number, w: number) {
