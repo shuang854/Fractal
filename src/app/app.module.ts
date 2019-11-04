@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { AppComponent } from './app.component';
 import { CanvasComponent } from './canvas.component';
 import { ForestComponent } from './forest.component';
+import { SkyComponent } from './sky.component';
+import { GroundComponent } from './ground.component';
 
 @NgModule({
   declarations: [
-    AppComponent, CanvasComponent, ForestComponent
+    AppComponent, CanvasComponent, ForestComponent, SkyComponent, GroundComponent
   ],
   imports: [
     BrowserModule, FormsModule

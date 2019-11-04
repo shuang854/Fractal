@@ -3,13 +3,13 @@ import { Component, Input, ElementRef, AfterViewInit, ViewChild } from '@angular
 @Component({
     selector: 'forest-canvas',
     template: '<canvas #forest></canvas>',
-    styles: ['canvas { border: 1px solid #000; position: absolute; left: 0; top: 0; z-index: 0; }']
+    styles: ['canvas { border: 1px solid #000; position: absolute; left: 0; top: 0; z-index: 1; }']
 })
 export class ForestComponent implements AfterViewInit {
     @ViewChild('forest', { static: true }) public canvas: ElementRef;
 
-    @Input() public width = window.innerWidth - 10;
-    @Input() public height = window.innerHeight - 10;
+    @Input() public width = window.innerWidth - 2;
+    @Input() public height = window.innerHeight - 2;
 
     private cx: CanvasRenderingContext2D; // forest canvas
     private animTime: number; // how long it takes to finish tree drawing animation, calculated during animation
@@ -19,26 +19,32 @@ export class ForestComponent implements AfterViewInit {
     public ngAfterViewInit() {
         // adjust variables here
         this.drawSpeed = 5;
-        this.drawInterval = 20;
+        this.drawInterval = 50;
 
-        const canvasEl2: HTMLCanvasElement = this.canvas.nativeElement;
-        this.cx = canvasEl2.getContext('2d');
-        this.animTime = 0;
+        const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
+        this.cx = canvasEl.getContext('2d');
 
-        canvasEl2.width = this.width;
-        canvasEl2.height = this.height;
-
+        canvasEl.width = this.width;
+        canvasEl.height = this.height;
         this.cx.lineCap = 'round';
-        this.cx.strokeStyle = '#000';
+        this.animTime = 0;
     }
 
-    // draw tree in forest canvas
+    /**
+     * paint tree in forest canvas
+     * @param start start position of branch (x, y)
+     * @param end end position of branch (x, y)
+     * @param h height of branch
+     * @param w width of branch
+     * @param currRot rotation of current branch in comparison to previous branch (angle)
+     * @param rot rotation spacing between branches (angle)
+     */
     public fillForest(start: { x: number, y: number }, end: {x: number, y: number}, 
         h: number, w: number, currRot: number, rot: number) {
 
         if (!this.cx) { return; }
         if (w <= 2) { return; }
-        
+
         this.animate(start, end, w);
         
         var branchH = h/1.5;
@@ -60,18 +66,22 @@ export class ForestComponent implements AfterViewInit {
     public grayTrees() {
         var img = this.cx.getImageData(0, 0, this.width, this.height);
         for (var t = 0; t < img.data.length; t += 4) {
-            if (img.data[t] == img.data[t+1] && img.data[t] == img.data[t+2] && img.data[t+1] == img.data[t+2]) {
-                if (img.data[t] < 255 && img.data[t+1] < 255 && img.data[t] < 255) {
-                    img.data[t] = Math.min(img.data[t]+20, 255);
-                    img.data[t+1] = Math.min(img.data[t+1]+20, 255);
-                    img.data[t+2] = Math.min(img.data[t+2]+20, 255);
-                }
+            if (img.data[t] == img.data[t+1] && img.data[t+1] == img.data[t+2] && img.data[t] == img.data[t+2]) {
+                //img.data[t] = Math.min(img.data[t] + 30, 255);
+                //img.data[t+1] = Math.min(img.data[t+1] + 30, 255);
+                //img.data[t+2] = Math.min(img.data[t+2] + 30, 255);
+                img.data[t+3] = Math.max(img.data[t+3] - 30, 0);
             }
         }
         this.cx.putImageData(img, 0, 0);
     }
 
-    // animation for drawing tree
+    /**
+     * animation for painting tree
+     * @param start start line point (x, y)
+     * @param end end line point (x, y)
+     * @param w line width
+     */
     public animate(start: {x: number, y: number}, end: {x: number, y: number}, w: number) {
         var amount = 0;
         var dist = Math.sqrt((start.x - end.x)*(start.x - end.x) + (start.y - end.y)*(start.y - end.y));
@@ -91,9 +101,16 @@ export class ForestComponent implements AfterViewInit {
         this.animTime += this.drawInterval * (Math.min(20, Math.floor(dist / this.drawSpeed)));
     }
 
-    // line stroke
+    /**
+     * tree branch painting
+     * @param start start line point (x, y)
+     * @param end end line point (x, y)
+     * @param w line width
+     * @param a percentage amount of line drawn
+     */
     public draw(start: {x: number, y: number}, end: {x: number, y: number}, w: number, a: number) {
         this.cx.lineWidth = w;
+        this.cx.strokeStyle = "#000000";
         this.cx.beginPath();
         this.cx.moveTo(start.x, start.y);
         this.cx.lineTo(start.x + (end.x - start.x) * Math.min(a, 1), start.y + (end.y - start.y) * Math.min(a, 1));
@@ -106,5 +123,9 @@ export class ForestComponent implements AfterViewInit {
         this.animTime = 0;
         console.log(time);
         return time;
+    }
+
+    public getCanvas() {
+        return this.cx;
     }
 }

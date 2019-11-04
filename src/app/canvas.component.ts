@@ -1,19 +1,23 @@
 import { Component, Input, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
 import { fromEvent } from 'rxjs';
 import { ForestComponent } from './forest.component';
+import { SkyComponent } from './sky.component';
+import { GroundComponent } from './ground.component';
 
 @Component({
     selector: 'tree-canvas',
-    template: '<canvas #tree></canvas> <forest-canvas></forest-canvas>',
-    styles: ['canvas { border: 1px solid #000; position: absolute; left: 0; top: 0; z-index: 1; }']
+    template: '<canvas #tree></canvas> <forest-canvas></forest-canvas> <sky-canvas></sky-canvas> <ground-canvas></ground-canvas>',
+    styles: ['canvas { border: 1px solid #000; position: absolute; left: 0; top: 0; z-index: 3; }']
 })
 export class CanvasComponent implements AfterViewInit {
 
     @ViewChild('tree', {static: true}) public canvas: ElementRef;
     @ViewChild(ForestComponent, {static: true}) public forest: ForestComponent;
+    @ViewChild(SkyComponent, {static: true}) public sky: SkyComponent;
+    @ViewChild(GroundComponent, {static: true}) public ground: GroundComponent;
 
-    @Input() public width = window.innerWidth-10;
-    @Input() public height = window.innerHeight-10;
+    @Input() public width = window.innerWidth - 2;
+    @Input() public height = window.innerHeight - 2;
 
     private cx: CanvasRenderingContext2D;
     private treeH: number; // starting height of tree
@@ -37,9 +41,18 @@ export class CanvasComponent implements AfterViewInit {
         this.cx.strokeStyle = '#000';
 
         this.captureEvents(canvasEl, this.forest);
+        setInterval(() => {
+            var amb = this.sky.getAmbience();
+            this.ground.setAmbience(amb);
+            this.ambience(amb);
+        }, 200);
     }
 
-    // listening for user inputs (Observables)
+    /**
+     * listening for user inputs (Observables)
+     * @param canvasEl canvas element
+     * @param forest forest component (forest.component.ts)
+     */
     private captureEvents(canvasEl: HTMLCanvasElement, forest: ForestComponent) {
         // draws on 'forest-canvas' on every click
         fromEvent(canvasEl, 'click')
@@ -59,7 +72,7 @@ export class CanvasComponent implements AfterViewInit {
                     forest.fillForest(start, { x: start.x, y: this.height - 50 }, this.treeH, 
                         this.treeW, 0, this.rotation);
                     setTimeout(() => { 
-                        this.isBuilding = false; 
+                        this.isBuilding = false;
                     }, forest.resetAnim() );
                 }
             });
@@ -78,7 +91,6 @@ export class CanvasComponent implements AfterViewInit {
                         y: res.clientY - rect.top
                     };
 
-                    // this method allows tree to hover over cursor
                     this.updateCanvas(currentPos, this.treeH, this.treeW);
                 }
             });
@@ -101,10 +113,32 @@ export class CanvasComponent implements AfterViewInit {
             
     }
 
+    /**
+     * allows tree to hover over cursor
+     * @param currentPos mouse cursor position (x, y)
+     * @param h height of tree trunk
+     * @param w width of tree trunk
+     */
     private updateCanvas(currentPos: { x: number, y: number }, h: number, w: number) {
         if (!this.cx) { return; }
 
         this.cx.clearRect(0, 0, this.width, this.height);
         this.cx.fillRect(currentPos.x-(w/2), this.height-h-50, w, h);
+    }
+
+    /**
+     * update ground coloring
+     * @param amb current ambience
+     */
+    public ambience(amb: number) {
+        var gctx = this.ground.getCanvas();
+        var gColors = this.ground.getColors();
+        var imgG = gctx.getImageData(0, 0, this.ground.width, this.ground.height);
+        for (var t = 0; t < gColors.length; t += 4) {
+            imgG.data[t] = gColors[t] * amb;
+            imgG.data[t+1] = gColors[t+1] * amb;
+            imgG.data[t+2] = gColors[t+2] * amb;
+        }
+        gctx.putImageData(imgG, 0, 0);
     }
 }
