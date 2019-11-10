@@ -45,7 +45,7 @@ export class CanvasComponent implements AfterViewInit {
             var amb = this.sky.getAmbience();
             this.ground.setAmbience(amb);
             this.ambience(amb);
-        }, 200);
+        }, 100);
     }
 
     /**
@@ -67,6 +67,7 @@ export class CanvasComponent implements AfterViewInit {
 
                 // build only one tree at a time
                 if (!this.isBuilding) {
+                    this.cx.clearRect(0, 0, this.width, this.height);
                     forest.grayTrees();
                     this.isBuilding = true;
                     forest.fillForest(start, { x: start.x, y: this.height - 50 }, this.treeH, 

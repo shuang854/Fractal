@@ -13,26 +13,30 @@ export class SkyComponent implements AfterViewInit {
 
     // user parameters
     private ambients = [ 1, 0.35, 0.05, 0.5 ]; // ambient intensities for day, dusk, night, dawn
+    private celeLoops = [ 70000, 30000, 60000 ]; // celestial body movements (sunset, moon rise, none)
     private lerpTime = 20000; // time taken to fade sky colors
-    private nextLerpTime = 40000; // waiting time until next fade
+    private nextLerpTime = 20000; // waiting time until next fade
     private starDensity = 0.2; // number of stars vs. sky area, value between 0 and 1 recommended
 
     private cx: CanvasRenderingContext2D;
     private gradient: CanvasGradient;
     private time: number; 
+    private celeTime: number; // celestial body time tracker
     private currAmbience: number; // shading/transparency at the current time
     private stars: number[]; // list of star coordinates [star1.x, star1.y, star2.x, star2.y, ...]
     private numStars: number; // number of stars in sky
+    private currLerpTime: number; // current time until next sky fade
     private lerpIndex = 0; // start with this sky index
+    private celeMotion = 0; // pointer for celeLoops
 
     // sky colors
     private colors = [[ 0x00, 0x00, 0x3f, 0x00, 0x3f, 0x7f,
                         0x1f, 0x5f, 0xc0, 0x3f, 0xa0, 0xff ],
-                      [ 0x00, 0x3f, 0x7f, 0xa0, 0x5f, 0x7f,
-                        0xff, 0x90, 0xe0, 0xff, 0x90, 0x00 ],
-                      [ 0x00, 0x00, 0x00, 0x00, 0x2f, 0x7f,
+                      [ 0x00, 0x3f, 0x7f, 0x50, 0x4f, 0x7f, 
+                        0xb2, 0x74, 0x82, 0xff, 0x90, 0x00 ],
+                      [ 0x00, 0x00, 0x00, 0x00, 0x0f, 0x3f,
                         0x00, 0x28, 0x50, 0x00, 0x1f, 0x3f ],
-                      [ 0x1f, 0x00, 0x5f, 0x3f, 0x2f, 0xa0,
+                      [ 0x1f, 0x00, 0x5f, 0x1f, 0x0f, 0x60,
                         0xa0, 0x1f, 0x1f, 0xff, 0x7f, 0x00 ] ];
 
     public ngAfterViewInit() {
@@ -42,31 +46,76 @@ export class SkyComponent implements AfterViewInit {
         canvasEl.height = this.height;
 
         this.time = new Date().getTime();
-        this.lerp(0, 2000);
+        this.celeTime = this.celeLoops[this.celeMotion];
         this.stars = [];
+        this.currLerpTime = this.nextLerpTime;
         this.numStars = Math.floor((this.width * this.height / 200) * this.starDensity);
         for (let i = 0; i < this.numStars; i++) {
             this.stars.push(Math.floor(Math.random()*(this.width - 10)));
             this.stars.push(Math.floor(Math.random()*(this.height - 10)));
         }
+        this.lerp(0, 100);
         setInterval(() => {
             this.skyColoring();
             this.starPaint();
-        }, 200);
+        }, 100);
     }
 
-    // determine gradient of sky colors and draw
+    // paint gradient of sky colors and sun/moon movement
     public skyColoring() {
         this.cx.fillStyle = this.gradient;
         this.cx.fillRect(0, 0, this.width, this.height);
         var ntime = new Date().getTime();
         var elapsed = ntime - this.time;
         
-        if (elapsed > this.nextLerpTime) {
-            this.lerpIndex = Math.floor((elapsed - this.nextLerpTime) / this.nextLerpTime);
-            if ((elapsed - this.nextLerpTime) % this.nextLerpTime < this.lerpTime) {
-                this.lerp((elapsed - this.nextLerpTime) % this.nextLerpTime, this.lerpTime);
+        // keep track of when to make sky ambience transition
+        if (elapsed > this.currLerpTime) {
+            if (elapsed - this.currLerpTime > this.lerpTime) {
+                this.currLerpTime += this.lerpTime + this.nextLerpTime;
+                this.lerpIndex++;
+            } else {
+                this.lerp(elapsed - this.currLerpTime, this.lerpTime);
             }
+            
+        }
+
+        // keep track of celestial body movement loops
+        let prev = this.celeTime - this.celeLoops[this.celeMotion];
+        if (elapsed > this.celeTime) {
+            this.celeMotion = (this.celeMotion + 1) % 3;
+            this.celeTime += this.celeLoops[this.celeMotion];
+            prev = this.celeTime - this.celeLoops[this.celeMotion];
+        }
+
+        // paint celestial body movement (sunset or moonrise)
+        this.cx.beginPath();
+        let total = this.celeLoops[this.celeMotion];
+        if (this.celeMotion === 0) { // paint Sun
+            let xPos = -60 + (400 * (((elapsed - prev) % total) / total));
+            let yPos = 400 + (this.height - 400) * (((elapsed - prev) % total) / total);
+
+            // radial gradient to blur edge of circular Sun
+            let grad = this.cx.createRadialGradient(xPos, yPos, 20, xPos, yPos, 50);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            this.cx.fillStyle = grad;
+            this.cx.fillRect(xPos-50, yPos-50, 150, 150);
+
+        } else if (this.celeMotion === 1) { // paint Moon
+            let xPos = this.width+50 - 300 * (((elapsed - prev) % total) / total);
+            let yPos = 300 - 350 * (((elapsed - prev) % total) / total);
+
+            // draw two overlapping circles for crescent Moon
+            this.cx.beginPath();
+            this.cx.arc(xPos+15, yPos+15, 25, 2 * Math.PI, 0, true);
+            this.cx.fillStyle = '#CCCCCC';
+            this.cx.fill();
+
+            this.cx.beginPath();
+            this.cx.arc(xPos, yPos, 30, 2 * Math.PI, 0, true);
+            this.cx.fillStyle = this.gradient;
+            this.cx.fill();
         }
     }
 
@@ -96,6 +145,7 @@ export class SkyComponent implements AfterViewInit {
             this.cx.globalAlpha = 1; // reset transparency
         }
     }
+
     /**
      * fade sky colors
      * @param time current time
