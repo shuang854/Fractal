@@ -58,7 +58,7 @@ export class SkyComponent implements AfterViewInit {
         setInterval(() => {
             this.skyColoring();
             this.starPaint();
-        }, 100);
+        }, 105);
     }
 
     // paint gradient of sky colors and sun/moon movement
@@ -92,13 +92,13 @@ export class SkyComponent implements AfterViewInit {
         let total = this.celeLoops[this.celeMotion];
         if (this.celeMotion === 0) { // paint Sun
             let xPos = -60 + (400 * (((elapsed - prev) % total) / total));
-            let yPos = 400 + (this.height - 400) * (((elapsed - prev) % total) / total);
+            let yPos = 400 + (this.height - 350) * (((elapsed - prev) % total) / total);
 
             // radial gradient to blur edge of circular Sun
             let grad = this.cx.createRadialGradient(xPos, yPos, 20, xPos, yPos, 50);
             grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
             grad.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
-            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
             this.cx.fillStyle = grad;
             this.cx.fillRect(xPos-50, yPos-50, 150, 150);
 

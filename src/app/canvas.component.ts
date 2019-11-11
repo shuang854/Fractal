@@ -44,7 +44,7 @@ export class CanvasComponent implements AfterViewInit {
         setInterval(() => {
             var amb = this.sky.getAmbience();
             this.ground.setAmbience(amb);
-            this.ambience(amb);
+            this.ground.updateCanvas();
         }, 100);
     }
 
@@ -63,14 +63,14 @@ export class CanvasComponent implements AfterViewInit {
                     x: res.clientX - rect.left,
                     y: res.clientY - rect.top
                 };
-                var start = { x: currentPos.x, y: this.height - this.treeH - 50};
+                var start = { x: currentPos.x, y: this.height - this.treeH - 10 };
 
                 // build only one tree at a time
                 if (!this.isBuilding) {
                     this.cx.clearRect(0, 0, this.width, this.height);
                     forest.grayTrees();
                     this.isBuilding = true;
-                    forest.fillForest(start, { x: start.x, y: this.height - 50 }, this.treeH, 
+                    forest.fillForest(start, { x: start.x, y: this.height - 10 }, this.treeH, 
                         this.treeW, 0, this.rotation);
                     setTimeout(() => { 
                         this.isBuilding = false;
@@ -124,7 +124,7 @@ export class CanvasComponent implements AfterViewInit {
         if (!this.cx) { return; }
 
         this.cx.clearRect(0, 0, this.width, this.height);
-        this.cx.fillRect(currentPos.x-(w/2), this.height-h-50, w, h);
+        this.cx.fillRect(currentPos.x-(w/2), this.height-h-10, w, h);
     }
 
     /**

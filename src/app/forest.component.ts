@@ -18,8 +18,8 @@ export class ForestComponent implements AfterViewInit {
 
     public ngAfterViewInit() {
         // adjust variables here
-        this.drawSpeed = 5;
-        this.drawInterval = 50;
+        this.drawSpeed = 4;
+        this.drawInterval = 100;
 
         const canvasEl: HTMLCanvasElement = this.canvas.nativeElement;
         this.cx = canvasEl.getContext('2d');
@@ -67,9 +67,6 @@ export class ForestComponent implements AfterViewInit {
         var img = this.cx.getImageData(0, 0, this.width, this.height);
         for (var t = 0; t < img.data.length; t += 4) {
             if (img.data[t] == img.data[t+1] && img.data[t+1] == img.data[t+2] && img.data[t] == img.data[t+2]) {
-                //img.data[t] = Math.min(img.data[t] + 30, 255);
-                //img.data[t+1] = Math.min(img.data[t+1] + 30, 255);
-                //img.data[t+2] = Math.min(img.data[t+2] + 30, 255);
                 img.data[t+3] = Math.max(img.data[t+3] - 30, 0);
             }
         }
